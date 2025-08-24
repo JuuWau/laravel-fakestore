@@ -9,6 +9,8 @@ services:
     volumes:
       - .:/var/www
       - /var/www/vendor
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
     networks:
       - laravel
     depends_on:
