@@ -34,7 +34,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: root
-      POSTGRES_DB: teste_tecnico
+      POSTGRES_DB: laravel_fakestore
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:

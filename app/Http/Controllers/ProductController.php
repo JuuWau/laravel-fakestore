@@ -10,29 +10,42 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
+        $categoryId = $request->query('category_id');
+        $minPrice = $request->query('min_price');
+        $maxPrice = $request->query('max_price');
+        $search = $request->query('search');
+        $sortPrice = $request->query('sort_price');
+        $perPage = $request->query('per_page', 10);
+
         $query = Product::with('category');
 
-        if ($request->category_id) $query->where('category_id', $request->category_id);
-        if ($request->min_price) $query->where('price', '>=', $request->min_price);
-        if ($request->max_price) $query->where('price', '<=', $request->max_price);
-        if ($request->search) $query->where('title', 'like', '%' . $request->search . '%');
-
-        if ($request->sort_price) {
-            $direction = in_array(strtolower($request->sort_price), ['asc', 'desc']) ? $request->sort_price : 'asc';
-            $query->orderBy('price', $direction);
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
         }
 
-        $page = $request->page ?? 1;
-        $perPage = $request->per_page ?? 10;
+        if ($minPrice) {
+            $query->where('price', '>=', $minPrice);
+        }
 
-        $cacheKey = 'products_list_' . md5(json_encode($request->only([
-            'category_id','min_price','max_price','search','sort_price','page','per_page'
-        ])));
+        if ($maxPrice) {
+            $query->where('price', '<=', $maxPrice);
+        }
 
-        return response()->json(
-            Cache::remember($cacheKey, 60, fn() => $query->paginate(perPage: $perPage, page: $page))
-        );
+        if ($search) {
+            $query->where('title', 'ilike', "%{$search}%");
+        }
+
+        if ($sortPrice && in_array($sortPrice, ['asc', 'desc'])) {
+            $query->orderBy('price', $sortPrice);
+        } else {
+            $query->orderBy('id', 'asc');
+        }
+
+        $products = $query->paginate($perPage);
+
+        return response()->json($products);
     }
+
 
     public function show($id)
     {
