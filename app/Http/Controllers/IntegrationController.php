@@ -12,10 +12,13 @@ use Illuminate\Support\Facades\Cache;
 
 class IntegrationController extends Controller
 {
-        public function sync()
+    public function sync()
     {
-        $categoriesApi = Http::timeout(5)->retry(3, 100)->get('https://fakestoreapi.com/products/categories');
-        if ($categoriesApi->failed()) {
+    try {
+        $categoriesApi = Http::timeout(5)->retry(3, 100)
+                ->get('https://fakestoreapi.com/products/categories')
+                ->throw();
+        } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch categories'], 500);
         }
 
@@ -27,7 +30,15 @@ class IntegrationController extends Controller
                 );
             }
 
-            $productsApi = Http::timeout(5)->retry(3, 100)->get('https://fakestoreapi.com/products');
+            try {
+                $productsApi = Http::timeout(5)->retry(3, 100)
+                    ->get('https://fakestoreapi.com/products')
+                    ->throw();
+            } catch (\Exception $e) {
+                Log::error('Failed to fetch products', ['error' => $e->getMessage()]);
+                return;
+            }
+
             foreach ($productsApi->json() as $item) {
                 try {
                     $category = Category::where('external_id', $item['category'])->first();
@@ -42,7 +53,10 @@ class IntegrationController extends Controller
                         ]
                     );
                 } catch (\Exception $e) {
-                    Log::error('Failed to sync product', ['external_id' => $item['id'], 'error' => $e->getMessage()]);
+                    Log::error('Failed to sync product', [
+                        'external_id' => $item['id'],
+                        'error' => $e->getMessage()
+                    ]);
                 }
             }
         });
